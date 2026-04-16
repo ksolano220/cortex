@@ -1,0 +1,10 @@
+rules:
+  - "never add features that weren't explicitly requested"
+  - "prefer the simplest solution — don't overcomplicate"
+  - "don't rewrite code that can be copied and modified"
+  - "keep responses under 50 lines unless the task requires more"
+  - "flag any security vulnerability before shipping"
+
+risk_threshold: 100
+max_blocked_attempts: 3
+max_rounds: 3

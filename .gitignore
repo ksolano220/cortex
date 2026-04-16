@@ -1,0 +1,23 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environment
+.venv/
+
+# Environment variables
+.env
+
+# Runtime state (Cortex)
+supervisor/runtime_log.json
+supervisor/state_store.json
+plan_status.json
+uploads/
+output/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Mac OS files
+.DS_Store
