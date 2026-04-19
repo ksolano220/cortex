@@ -2,74 +2,25 @@
 
 Two AI models check each other's work so you don't have to.
 
-Cortex is a Python SDK that runs one AI model as the **worker** and another as the **overseer**. The worker writes code. The overseer stress-tests it. They debate until the output passes your rules. If an agent fails, Cortex shuts it down and spawns a new one with memory of what went wrong.
+Cortex is a Python SDK that runs one AI model as the **worker** and another as the **overseer**. The worker writes code. The overseer stress-tests it against your rules. They debate until the output passes. If an agent fails too many times, Cortex shuts it down and spawns a new one with memory of what went wrong.
 
-You define the plan. You approve it. You set the rules. Then you walk away. Cortex handles the execution — you handle the decisions that matter.
+You define the plan. You approve it. You set the rules. Cortex runs the worker-overseer debate and (optionally) writes the approved files to your workspace.
+
+---
+
+## Example uses
+
+- **Dev agents that ship PRs** — worker writes the code, overseer blocks anything that touches auth or secrets without a rule exception.
+- **Data pipeline validators** — worker proposes a transform, overseer verifies column types and null rates haven't drifted from a reference.
+- **Customer-facing copy** — worker drafts, overseer blocks anything that sounds like a promise or a policy commitment.
+
+Anywhere you'd feel uneasy letting a single model act unreviewed.
 
 ---
 
 ## Limitations
 
-While Cortex significantly reduces the need for human oversight, it has important limitations. Complex business logic, regulatory compliance decisions, and context requiring deep domain expertise still need human judgment. The models may miss subtle requirements or make assumptions about user intent. Edge cases in specialized domains might require manual intervention. Always review outputs for critical applications and consider Cortex as a powerful assistant, not a replacement for human decision-making.
-
----
-
-## Error Handling
-
-Cortex includes comprehensive error handling across multiple layers:
-
-- **Model failures**: Automatic retries with exponential backoff
-- **API timeouts**: Graceful degradation and fallback strategies  
-- **Rule violations**: Immediate task rejection with detailed feedback
-- **Agent corruption**: Complete agent termination and fresh spawning
-- **Plan interruptions**: State preservation and recovery mechanisms
-- **Network issues**: Queue-based task management with persistence
-
-All errors are logged with full context. Failed agents are replaced automatically with corrective memory to prevent recurring issues.
-
----
-
-## Performance Trade-offs
-
-The dual-model architecture prioritizes reliability over speed:
-
-**Processing Time**: 2-3x slower than single-model systems due to overseer review and potential debate rounds. Simple tasks may feel over-engineered.
-
-**Cost**: Higher API costs from running two models per task. Budget 1.5-2x typical usage costs.
-
-**Latency**: Additional network round-trips for model communication add 500ms-2s per interaction.
-
-**Accuracy**: Significantly fewer errors and higher-quality outputs offset the performance costs for production use cases.
-
-Consider single-model solutions for simple, non-critical tasks where speed matters more than accuracy.
-
----
-
-## Real-world Use Cases
-
-**Software Development**
-- Automated code reviews and refactoring
-- Test generation with comprehensive coverage
-- API documentation that stays current with code changes
-- Legacy code modernization with safety checks
-
-**DevOps & Infrastructure**  
-- CI/CD pipeline generation and maintenance
-- Infrastructure as code with security validation
-- Automated deployment scripts with rollback safety
-- Configuration management across environments
-
-**Content & Documentation**
-- Technical documentation that maintains accuracy
-- Code comment generation and maintenance  
-- Architecture decision records with peer review
-- API specification generation from existing code
-
-**Research & Analysis**
-- Data pipeline validation and testing
-- Automated code quality assessments
-- Security vulnerability scanning and remediation
-- Performance optimization with benchmarking
+Cortex reduces but does not eliminate the need for human review. Compliance decisions, novel business logic, and anything safety-critical still need a person in the loop. Running two models per task also means you should budget roughly 2x the API cost and latency of a single-model system.
 
 ---
 
@@ -112,7 +63,7 @@ Each user gets their own private workspace — tasks, rules, uploads, and result
 
 ## Usage
 
-### Single Task
+### Review-only (default)
 
 ```python
 from cortex import Cortex
@@ -126,8 +77,33 @@ cortex = Cortex(
 )
 
 result = cortex.run("Write a function that validates email addresses")
-print(result["output"])
+print(result["output"])   # the worker's reviewed text, nothing written to disk
 ```
+
+### Write files to a workspace
+
+Pass `apply=True` and Cortex will parse the worker's output for file blocks and write them to `workspace` after the overseer passes.
+
+```python
+result = cortex.run(
+    "Add a JWT helper in src/auth/jwt_utils.py with sign and verify functions",
+    apply=True,
+    workspace="./my-project",
+)
+
+for f in result["files_written"]:
+    print(f["path"], "ok" if f["written"] else f"blocked: {f['reason']}")
+```
+
+The worker learns to emit files in this format via its system prompt:
+
+```
+<<<FILE src/auth/jwt_utils.py>>>
+# file contents
+<<<END>>>
+```
+
+The executor rejects absolute paths, paths that escape the workspace, and a denylist covering `.git/`, `.env*`, `*.key`, `*.pem`, and `.ssh/`. See `cortex/engine/executor.py`.
 
 ### Full Plan
 
@@ -136,9 +112,11 @@ result = cortex.run_plan(
     tasks=[
         "Build auth flow with JWT tokens",
         "Write unit tests for auth",
-        "Deploy to staging",
+        "Wire tests into pytest config",
     ],
     status_path="plan_status.json",
+    apply=True,
+    workspace="./my-project",
 )
 ```
 
@@ -221,6 +199,7 @@ Mobile-friendly. Single column. Check between sets.
 ```
 cortex/
   engine/core.py     — dual-model loop + self-healing + plan runner
+  engine/executor.py — parse worker file blocks and write them safely
   engine/rules.py    — YAML rule parser
   adapters/          — model adapters (Anthropic, OpenAI)
   vault.py           — secure local key storage
