@@ -10,9 +10,9 @@ You define the plan. You approve it. You set the rules. Cortex runs the worker-o
 
 ## Example uses
 
-- **Dev agents that ship PRs** — worker writes the code, overseer blocks anything that touches auth or secrets without a rule exception.
-- **Data pipeline validators** — worker proposes a transform, overseer verifies column types and null rates haven't drifted from a reference.
-- **Customer-facing copy** — worker drafts, overseer blocks anything that sounds like a promise or a policy commitment.
+- **Dev agents that ship PRs.** Worker writes the code, overseer blocks anything that touches auth or secrets without a rule exception.
+- **Data pipeline validators.** Worker proposes a transform, overseer verifies column types and null rates haven't drifted from a reference.
+- **Customer-facing copy.** Worker drafts, overseer blocks anything that sounds like a promise or a policy commitment.
 
 Anywhere you'd feel uneasy letting a single model act unreviewed.
 
@@ -55,9 +55,9 @@ uvicorn supervisor.main:app --reload --port 8000
 streamlit run dashboard/app.py
 ```
 
-Open http://localhost:8501. Create an account. The dashboard walks you through adding your API keys — you'll need one from [Anthropic](https://console.anthropic.com) and one from [OpenAI](https://platform.openai.com). Keys are stored locally on your machine and never leave it.
+Open http://localhost:8501. Create an account. The dashboard walks you through adding your API keys. You'll need one from [Anthropic](https://console.anthropic.com) and one from [OpenAI](https://platform.openai.com). Keys are stored locally on your machine and never leave it.
 
-Each user gets their own private workspace — tasks, rules, uploads, and results are isolated per account.
+Each user gets their own private workspace: tasks, rules, uploads, and results are isolated per account.
 
 ---
 
@@ -185,10 +185,10 @@ streamlit run dashboard/app.py
 
 Shows:
 
-- **Plan progress** — which tasks are done, which are running, which are next
-- **Add tasks** — add to the plan from the dashboard (or your phone)
-- **Event feed** — every action, decision, and trace
-- **Agent status** — risk, blocked attempts, self-heal history
+- **Plan progress.** Which tasks are done, which are running, which are next
+- **Add tasks.** Add to the plan from the dashboard (or your phone)
+- **Event feed.** Every action, decision, and trace
+- **Agent status.** Risk, blocked attempts, self-heal history
 
 Mobile-friendly. Single column. Check between sets.
 
@@ -198,21 +198,21 @@ Mobile-friendly. Single column. Check between sets.
 
 ```
 cortex/
-  engine/core.py     — dual-model loop + self-healing + plan runner
-  engine/executor.py — parse worker file blocks and write them safely
-  engine/rules.py    — YAML rule parser
-  adapters/          — model adapters (Anthropic, OpenAI)
-  vault.py           — secure local key storage
-  cli.py             — vault management CLI
+  engine/core.py     # dual-model loop + self-healing + plan runner
+  engine/executor.py # parse worker file blocks and write them safely
+  engine/rules.py    # YAML rule parser
+  adapters/          # model adapters (Anthropic, OpenAI)
+  vault.py           # secure local key storage
+  cli.py             # vault management CLI
 
-supervisor/          — runtime policy engine (from Sentra)
-  main.py            — FastAPI endpoints
-  risk.py            — risk scoring + threshold logic
-  rules.py           — deterministic policy rules
-  storage.py         — state + audit logs
+supervisor/          # runtime policy engine (from Sentra)
+  main.py            # FastAPI endpoints
+  risk.py            # risk scoring + threshold logic
+  rules.py           # deterministic policy rules
+  storage.py         # state + audit logs
 
-dashboard/app.py     — Streamlit monitoring UI
-cortex.yaml          — your rules
+dashboard/app.py     # Streamlit monitoring UI
+cortex.yaml          # your rules
 ```
 
 ---
