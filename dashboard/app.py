@@ -635,11 +635,88 @@ st.markdown("""
 
 .cx-empty {
     text-align: center;
-    padding: 80px 0;
-    color: #ccc;
-    font-size: 20px;
-    font-weight: 400;
+    padding: 64px 0 80px;
+    color: #888;
 }
+
+.cx-empty-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+}
+
+.cx-empty-body {
+    font-size: 15px;
+    color: #888;
+    margin-bottom: 20px;
+    line-height: 1.6;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.cx-empty-hint {
+    font-size: 13px;
+    color: #bbb;
+    font-family: 'SF Mono', Menlo, monospace;
+    letter-spacing: 0.02em;
+}
+
+/* ── Metrics strip ── */
+
+.cx-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+}
+
+.cx-metric {
+    background: #ffffff;
+    border: 1px solid #ececec;
+    border-radius: 10px;
+    padding: 16px 18px;
+}
+
+.cx-metric-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 6px;
+}
+
+.cx-metric-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1a1a1a;
+    line-height: 1.1;
+}
+
+.cx-metric-value.cx-accent-blocked { color: #ff9500; }
+.cx-metric-value.cx-accent-shutdown { color: #1a1a1a; }
+
+/* ── Decision pill ── */
+
+.cx-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.2;
+}
+
+.cx-pill-allowed { background: #e8f8ec; color: #1b7c3a; }
+.cx-pill-blocked { background: #fff4e5; color: #a45500; }
+.cx-pill-shutdown { background: #1a1a1a; color: #ffffff; }
+.cx-pill-review { background: #e8f1fc; color: #0a5bb5; }
 
 /* ── Input overrides ── */
 
@@ -1126,9 +1203,41 @@ def render_dashboard():
 
     st.markdown('<div class="cx-section-divider"></div>', unsafe_allow_html=True)
 
+    # ── Metrics strip ──
+
+    all_agents_set = {e["agent_id"] for e in events if e["agent_id"]}
+    total_events = len(events)
+    active_agents = sum(
+        1 for a in all_agents_set
+        if any(e["agent_id"] == a and e.get("agent_status", "").upper() != "SHUTDOWN" for e in events)
+    )
+    blocked_attempts = sum(1 for e in events if e["decision"] == "Blocked")
+    shutdowns = sum(1 for e in events if e["decision"] == "Agent Shut Down")
+
+    st.markdown(f"""
+    <div class="cx-metrics">
+        <div class="cx-metric">
+            <div class="cx-metric-label">Total events</div>
+            <div class="cx-metric-value">{total_events}</div>
+        </div>
+        <div class="cx-metric">
+            <div class="cx-metric-label">Active agents</div>
+            <div class="cx-metric-value">{active_agents}</div>
+        </div>
+        <div class="cx-metric">
+            <div class="cx-metric-label">Blocked</div>
+            <div class="cx-metric-value cx-accent-blocked">{blocked_attempts}</div>
+        </div>
+        <div class="cx-metric">
+            <div class="cx-metric-label">Shutdowns</div>
+            <div class="cx-metric-value cx-accent-shutdown">{shutdowns}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
     # ── Event feed ──
 
-    all_agents = sorted({e["agent_id"] for e in events if e["agent_id"]})
+    all_agents = sorted(all_agents_set)
     filter_options = ["All Agents"] + all_agents
 
     if st.session_state.agent_filter not in filter_options:
@@ -1180,17 +1289,23 @@ def render_dashboard():
         """, unsafe_allow_html=True)
 
     if not filtered:
-        st.markdown('<div class="cx-empty">Waiting for events</div>', unsafe_allow_html=True)
+        st.markdown("""
+        <div class="cx-empty">
+            <div class="cx-empty-title">No events yet</div>
+            <div class="cx-empty-body">Add a task above and Cortex will spawn a worker and overseer to run it. Each agent action will stream into this feed with the decision, risk score, and debate transcript.</div>
+            <div class="cx-empty-hint">Try: "Write a function that validates email addresses"</div>
+        </div>
+        """, unsafe_allow_html=True)
         return
 
     for event in filtered[:40]:
         decision = event["decision"]
-        dot_class = {
-            "Allowed": "cx-dot-allowed",
-            "Blocked": "cx-dot-blocked",
-            "Agent Shut Down": "cx-dot-shutdown",
-            "Review": "cx-dot-review",
-        }.get(decision, "cx-dot-allowed")
+        pill_class = {
+            "Allowed": "cx-pill-allowed",
+            "Blocked": "cx-pill-blocked",
+            "Agent Shut Down": "cx-pill-shutdown",
+            "Review": "cx-pill-review",
+        }.get(decision, "cx-pill-allowed")
 
         meta_parts = []
         if event["agent_id"]:
@@ -1211,10 +1326,7 @@ def render_dashboard():
             </div>
             <div class="cx-card-body">{html.escape(reason)}</div>
             <div class="cx-card-footer">
-                <div class="cx-decision">
-                    <span class="cx-dot {dot_class}"></span>
-                    {html.escape(decision)}
-                </div>
+                <span class="cx-pill {pill_class}">{html.escape(decision)}</span>
                 <div class="cx-meta">{meta_html}</div>
             </div>
         </div>
