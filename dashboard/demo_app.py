@@ -825,10 +825,10 @@ header {visibility: hidden;}
 
 head_logo, head_link = st.columns([3, 2])
 with head_logo:
-    st.markdown(_logo_tag(56), unsafe_allow_html=True)
+    st.markdown(_logo_tag(96), unsafe_allow_html=True)
 with head_link:
     st.markdown(
-        '<div class="cx-meta" style="text-align:right;padding-top:22px">'
+        '<div class="cx-meta" style="text-align:right;padding-top:42px">'
         'Live read-only demo &nbsp;&middot;&nbsp; '
         '<a href="https://github.com/ksolano220/cortex" style="color:#72C2C3;text-decoration:underline">Clone on GitHub</a>'
         '</div>',
